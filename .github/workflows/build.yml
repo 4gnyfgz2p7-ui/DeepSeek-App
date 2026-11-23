@@ -29,16 +29,19 @@ jobs:
 
       - name: Install XcodeGen
         run: |
-          # 直接下固定版本，跳过 brew 索引更新，冷机器上能省 40~90 秒
+          # 直接下固定版本，跳过 brew 索引更新，冷机器上能省 40~90 秒。
+          # 包内布局是 bin/xcodegen + share/xcodegen（SettingPresets），
+          # 按官方 install.sh 的方式落位，否则 xcodegen 会找不到预设。
           curl -sL -o /tmp/xcodegen.zip \
             https://github.com/yonaskolb/XcodeGen/releases/download/2.44.1/xcodegen.zip
           unzip -q /tmp/xcodegen.zip -d /tmp
-          sudo cp -R /tmp/xcodegen/*.bundle /tmp/xcodegen/xcodegen /usr/local/bin/ 2>/dev/null || true
-          if [ ! -x /usr/local/bin/xcodegen ]; then
-            find /tmp/xcodegen -maxdepth 2 -type f | head
-            export PATH="/tmp/xcodegen:$PATH"
-            echo "/tmp/xcodegen" >> "$GITHUB_PATH"
+          sudo install -d /usr/local/bin /usr/local/share
+          sudo cp -R /tmp/xcodegen/bin/xcodegen /usr/local/bin/xcodegen
+          if [ -d /tmp/xcodegen/share/xcodegen ]; then
+            sudo rm -rf /usr/local/share/xcodegen
+            sudo cp -R /tmp/xcodegen/share/xcodegen /usr/local/share/xcodegen
           fi
+          sudo chmod +x /usr/local/bin/xcodegen
           xcodegen --version
 
       - name: Setup Node

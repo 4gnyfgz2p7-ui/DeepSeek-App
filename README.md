@@ -1,6 +1,8 @@
 # DeepSeek 手机端客户端（iOS）
 
-按 `手机端接入 DeepSeek API 客户端方案.md` 实现的原生 iOS 客户端。最低系统 iOS 27.2，不做旧系统兼容。
+按 `手机端接入 DeepSeek API 客户端方案.md` 实现的原生 iOS 客户端。
+
+部署目标当前为 **iOS 26.0**：托管 runner 目前只提供 Xcode 26.6 / iOS 26.5 SDK，写 27.2 会因 SDK 不足直接编译失败。工程没有使用任何 26 之后才有的 API，所以这不影响功能；等 runner 提供 iOS 27.2 SDK 后，把 `project.yml` 里两处 `26.0` 改回 `27.2` 即成。
 
 ## 当前进度
 
@@ -57,7 +59,7 @@ DSClient/
 1. 把 `DSClient` 目录作为仓库根目录，默认分支 `main`。
 2. Actions 执行：下载固定版 XcodeGen → `xcodegen generate` → `xcodebuild archive`（不签名）→ 打 `DSClient.ipa` → 上传产物，并在 `main` 上把 IPA 发布为 `latest` rolling release。
 3. 构建号取 `github.run_number`，每次推送自动递增，侧载工具能正确识别为新版本。
-4. 前提：runner 需提供 **iOS 27.2 SDK**（Xcode 27.2+）。工作流第一步会打印实际 SDK 版本，若低于 27.2，归档会因部署目标校验失败。
+4. 前提：runner 的 SDK 不得低于部署目标。工作流第一步会打印实际 Xcode 与 SDK 版本；若部署目标高于 SDK，归档会失败——此时要么改部署目标，要么换带更新 Xcode 的 runner。
 
 本地 Mac（可选，用于真机调试）：
 
