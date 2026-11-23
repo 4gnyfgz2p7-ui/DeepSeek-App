@@ -61,6 +61,17 @@ DSClient/
 3. 构建号取 `github.run_number`，每次推送自动递增，侧载工具能正确识别为新版本。
 4. 前提：runner 的 SDK 不得低于部署目标。工作流第一步会打印实际 Xcode 与 SDK 版本；若部署目标高于 SDK，归档会失败——此时要么改部署目标，要么换带更新 Xcode 的 runner。
 
+日常不需要手动进 GitHub 下载，一体化脚本会把产物直接放到本地：
+
+```bash
+python tools/build.py                  # 提交并推送 → 等构建 → 下载到 _local/
+python tools/build.py --skip-push      # CI 已在跑，只等结果并下载
+python tools/build.py --commit "说明"   # 指定提交信息
+python tools/logs.py                   # 构建失败时拉日志，列出失败步骤与 error 行
+```
+
+产物路径固定为 `_local/DSClient-<MARKETING_VERSION>.ipa`，签名工具直接从该目录取包。令牌读 `.token` 或环境变量 `GITHUB_TOKEN`；`.token` 与 `_local/` 都不入库。
+
 本地 Mac（可选，用于真机调试）：
 
 ```bash

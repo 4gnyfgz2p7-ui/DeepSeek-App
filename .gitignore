@@ -11,3 +11,7 @@ fastlane/report.xml
 web/node_modules/
 web/preview.png
 Sources/Resources/web/
+
+# 本地构建产物的落点，以及推送令牌（只在本地存在）
+_local/
+.token
