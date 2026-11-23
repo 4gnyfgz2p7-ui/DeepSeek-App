@@ -123,8 +123,11 @@ cd DSClient && xcodegen generate --spec project.yml && open DSClient.xcodeproj
 |---|---|
 | **SideStore 自己点不开/闪退** | 它本身就是那个 7 天证书的 App，没有任何东西能替它续签。用 iLoader 覆盖重装一次（数据保留），再在 SideStore 里 `Refresh All` 复活其余 App |
 | iLoader 提示「已达证书数量上限，将撤销现有证书」 | 点继续。旧证书已废，撤销无额外损失；不撤销装不了新的 |
-| 登录报 `80045` | LocalDevVPN 必须连着；切 Anisette 服务器后杀后台重进 |
+| iLoader 登录阶段失败（auth / anisette / `-80045` / `503` / `-22410`） | 先看版本：**低于 2.4.0 一律先去升级**。苹果在 2026-10-12 改了账号验证接口，旧版工具在登录这一步就死，与账号无关。升级后 Anisette 保持默认 `Jkcoxson`，双重认证必须走「受信任设备批准」，短信码通道当前是坏的 |
+| 越试越难进，报 `429` / `503` | 苹果限流。停 30 分钟以上再试，别对着同一个账号连续点 |
+| 不确定是账号问题还是工具问题 | 浏览器登录 account.apple.com：能正常登说明账号没锁，问题在工具/Anisette；要求解锁或改密才是账号侧 |
 | App 提示「不受信任的开发者」 | 设置 → VPN与设备管理 → 信任 Apple ID 证书 |
+| **SideStore 内**登录报 `80045` | LocalDevVPN 必须连着；`Anisette Servers` 切到 `jkcoxson` 后杀后台重进 |
 | App 闪退/打不开 | 证书过期，回 SideStore 点 Refresh；或开发者模式没开 |
 | 续签静默失败 | 代理类 VPN 与 LocalDevVPN 互斥，续签时全部关掉 |
 | 安装报证书数量上限 | 免费 ID 最多 3 个 App，先在 SideStore 里删掉不用的 |
