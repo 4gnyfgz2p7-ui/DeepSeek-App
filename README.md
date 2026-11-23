@@ -80,27 +80,54 @@ unzip -q /tmp/xcodegen.zip -d /tmp && sudo cp -R /tmp/xcodegen/*.bundle /tmp/xco
 cd DSClient && xcodegen generate --spec project.yml && open DSClient.xcodeproj
 ```
 
-## 安装到手机
+## 安装到手机（iLoader + SideStore，7 天自动续签）
 
-工程不配置签名，产物是未签名 IPA，安装前需要用自己的 Apple ID 签一次。两条路选一条。
+三个工具分工固定，不要混用：
 
-### A. Windows 电脑签名（Sideloadly）
+| 工具 | 负责 | 频率 |
+|---|---|---|
+| iLoader（电脑） | 把 SideStore 装进手机、导出配对文件、必要时重置证书 | 一次性 |
+| SideStore（手机） | 签装 DSClient、后台续签 | 每次更新 |
+| LocalDevVPN（手机） | 本地隧道，让 SideStore 不连电脑也能续签 | 常驻连接 |
 
-前置：安装 [iTunes（Apple 官网版）](https://www.apple.com/itunes/) 或「Apple 设备」应用，**不要用 Microsoft Store 版本**——它缺 USB 驱动组件，Sideloadly 会找不到设备。
+> **为什么不直接用 iLoader 签装 DSClient**：iLoader 直签的 App 不进 SideStore 的记录库，SideStore 不知道它存在，续签功能对它无效，到期只能插线重签。要让手机自动续，App 必须由 SideStore 签装。
 
-1. 手机用 USB 连接电脑，解锁并在弹窗中选「信任此电脑」。
-2. 安装 [Sideloadly](https://sideloadly.io/)，打开后把 `DSClient.ipa` 拖进窗口。
-3. `Apple Account` 填自己的 Apple ID，点 Start；按提示输入密码与双重认证验证码。
-4. 手机上：设置 → 通用 → VPN与设备管理 → 信任对应开发者描述文件。
-5. 免费 Apple ID 的签名 7 天失效，到期后重连电脑再点一次 Start 即可；同一 Apple ID 可同时签 3 个 App。
+### 一次性准备
 
-覆盖安装同一个 bundle id 的新版本会**保留**本地会话与钥匙串里的 API Key，不需要重新配置。
+1. **开发者模式**：设置 → 隐私与安全性 → 开发者模式 → 打开并重启。（部分系统版本需借助工具开启，iLoader 连着设备时更省事。）
+2. **电脑驱动**：装 [iTunes 官网版](https://www.apple.com/itunes/) 或「Apple 设备」应用，**不要用 Microsoft Store 版本**，它缺 USB 组件，iLoader 认不到设备。
+3. **iLoader**：[iloader.site](https://iloader.site/) 下载 Windows 版（2.4.1+），双击运行。手机插线、解锁、在弹窗选「信任此电脑」。
+4. **登录**：iLoader 右上角选设备 → 输入 Apple ID 密码 → 保存凭据 → 填双重认证验证码。**建议用专门的小号**，这个 ID 会承担签名的风控风险。登录不上就切 `Anisette 服务器`（试 jkcoxson / SideStore(.io)）。
+5. **装 SideStore**：点 `SideStore（稳定版）`，等进度跑完。手机上：设置 → 通用 → VPN与设备管理 → 信任你的 Apple ID 证书。
+6. **配对文件**：iLoader → `管理配对文件` → 导出，把 `pairingFile.plist` 传到手机。
+7. **LocalDevVPN**：从 **非国区 Apple Store** 账号下载（国区已下架）。打开并保持 Connect。
+8. **SideStore 配置**：打开 SideStore → 允许网络/位置/通知 → 选择刚导入的配对文件 → 设置里关闭 `On-Device Anisette` → `Restart Now` → 重进后在 `Anisette Servers` 里切到 `jkcoxson` → 用**同一个 Apple ID** 登录（报 80045 就换服务器 + 杀后台重进）→ 显示 `Free Developer Account` 即成功。
 
-### B. 手机端 SideStore 签名
+### 装 DSClient
 
-1. 手机打开仓库 Releases → `latest` → 下载 `DSClient.ipa`，分享存入「文件」。
-2. SideStore → `+` → 选择该 IPA → 用 Apple ID 签名安装。
-3. 首次安装若提示未受信任，按上面第 4 步信任描述文件。
+1. 手机 Safari 打开仓库 Releases → `latest` → 下载 `DSClient.ipa` → 分享 → 存储到「文件」。
+2. 打开 SideStore → 右上角 `+` → 选择该 IPA → 安装。
+3. 首次启动会直接进设置页，填 DeepSeek API Key。
+
+### 更新版本
+
+重复上面三步即可，同一个 bundle 覆盖安装，**会话记录与钥匙串里的 Key 都保留**。构建号取 `github.run_number` 每次自增，SideStore 不会拿缓存里的旧包替换新包。
+
+### 续签
+
+保持 LocalDevVPN 连接 + 有 Wi-Fi，SideStore 会在后台把 7 天倒计时刷新回去；也可手动在 SideStore 里点 `Refresh All`。
+
+### 排错
+
+| 现象 | 处理 |
+|---|---|
+| 登录报 `80045` | LocalDevVPN 必须连着；切 Anisette 服务器后杀后台重进 |
+| App 提示「不受信任的开发者」 | 设置 → VPN与设备管理 → 信任 Apple ID 证书 |
+| App 闪退/打不开 | 证书过期，回 SideStore 点 Refresh；或开发者模式没开 |
+| 续签静默失败 | 代理类 VPN 与 LocalDevVPN 互斥，续签时全部关掉 |
+| 安装报证书数量上限 | 免费 ID 最多 3 个 App，先在 SideStore 里删掉不用的 |
+
+若临时只想快速看一眼效果，也可以用 iLoader 直接 `导入 IPA` 签名安装，7 天后失效，重装即可——但这样拿不到自动续签。
 
 ## 关键设计决策
 
