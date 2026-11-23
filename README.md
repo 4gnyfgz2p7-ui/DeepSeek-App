@@ -71,13 +71,25 @@ cd DSClient && xcodegen generate --spec project.yml && open DSClient.xcodeproj
 
 ## 安装到手机
 
-沿用 `opengate` 已验证的路径：本工程不配置签名，直接用 SideStore 在设备上签名安装，不需要 Mac，也不需要 Apple Developer Program。
+工程不配置签名，产物是未签名 IPA，安装前需要用自己的 Apple ID 签一次。两条路选一条。
 
-1. 手机打开仓库 Releases → `latest` → 下载 `DSClient.ipa`。
-2. SideStore 里导入该 IPA，用自己的 Apple ID 签名安装。
-3. 免费账号签名有效期 7 天，SideStore 会在到期前后台续签；更换签名身份或重装时需重新导入。
+### A. Windows 电脑签名（Sideloadly）
 
-注意：`CODE_SIGNING_ALLOWED=NO` 是工程级设置，本地要用真机调试需临时改回自动签名。
+前置：安装 [iTunes（Apple 官网版）](https://www.apple.com/itunes/) 或「Apple 设备」应用，**不要用 Microsoft Store 版本**——它缺 USB 驱动组件，Sideloadly 会找不到设备。
+
+1. 手机用 USB 连接电脑，解锁并在弹窗中选「信任此电脑」。
+2. 安装 [Sideloadly](https://sideloadly.io/)，打开后把 `DSClient.ipa` 拖进窗口。
+3. `Apple Account` 填自己的 Apple ID，点 Start；按提示输入密码与双重认证验证码。
+4. 手机上：设置 → 通用 → VPN与设备管理 → 信任对应开发者描述文件。
+5. 免费 Apple ID 的签名 7 天失效，到期后重连电脑再点一次 Start 即可；同一 Apple ID 可同时签 3 个 App。
+
+覆盖安装同一个 bundle id 的新版本会**保留**本地会话与钥匙串里的 API Key，不需要重新配置。
+
+### B. 手机端 SideStore 签名
+
+1. 手机打开仓库 Releases → `latest` → 下载 `DSClient.ipa`，分享存入「文件」。
+2. SideStore → `+` → 选择该 IPA → 用 Apple ID 签名安装。
+3. 首次安装若提示未受信任，按上面第 4 步信任描述文件。
 
 ## 关键设计决策
 
