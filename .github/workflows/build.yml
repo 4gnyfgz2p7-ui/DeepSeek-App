@@ -1,0 +1,111 @@
+name: build-unsigned-ipa
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: macos-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Show toolchain
+        run: |
+          xcodebuild -version
+          xcode-select -p
+          xcodebuild -showsdks | grep -i iphoneos || true
+
+      - name: Install XcodeGen
+        run: |
+          # 直接下固定版本，跳过 brew 索引更新，冷机器上能省 40~90 秒
+          curl -sL -o /tmp/xcodegen.zip \
+            https://github.com/yonaskolb/XcodeGen/releases/download/2.44.1/xcodegen.zip
+          unzip -q /tmp/xcodegen.zip -d /tmp
+          sudo cp -R /tmp/xcodegen/*.bundle /tmp/xcodegen/xcodegen /usr/local/bin/ 2>/dev/null || true
+          if [ ! -x /usr/local/bin/xcodegen ]; then
+            find /tmp/xcodegen -maxdepth 2 -type f | head
+            export PATH="/tmp/xcodegen:$PATH"
+            echo "/tmp/xcodegen" >> "$GITHUB_PATH"
+          fi
+          xcodegen --version
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Build renderer
+        run: |
+          set -euo pipefail
+          cd web
+          npm install --no-audit --no-fund
+          npm run build
+          ls -lh ../Sources/Resources/web
+
+      - name: Generate Xcode project
+        run: xcodegen generate --spec project.yml
+
+      - name: Archive (unsigned)
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -project DSClient.xcodeproj \
+            -scheme DSClient \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath build/DSClient.xcarchive \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            DEVELOPMENT_TEAM="" \
+            PROVISIONING_PROFILE_SPECIFIER="" \
+            CURRENT_PROJECT_VERSION=${{ github.run_number }} \
+            archive
+
+      - name: Package IPA
+        run: |
+          set -euo pipefail
+          APP_PATH="build/DSClient.xcarchive/Products/Applications/DSClient.app"
+          if [ ! -d "$APP_PATH" ]; then
+            echo "未找到 $APP_PATH"
+            find build/DSClient.xcarchive -maxdepth 4 -name "*.app"
+            exit 1
+          fi
+          rm -rf build/Payload build/DSClient.ipa
+          mkdir -p build/Payload
+          cp -R "$APP_PATH" build/Payload/
+          cd build
+          zip -qry DSClient.ipa Payload
+          ls -lh DSClient.ipa
+          unzip -l DSClient.ipa | head -20
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: DSClient-unsigned-ipa
+          path: build/DSClient.ipa
+          retention-days: 30
+
+      - name: Publish rolling release
+        if: github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          gh release delete latest --yes --cleanup-tag 2>/dev/null || true
+          gh release create latest build/DSClient.ipa \
+            --title "DSClient 最新构建" \
+            --notes "未签名 IPA。用 SideStore 签名安装；无需本地 Mac。" \
+            --latest

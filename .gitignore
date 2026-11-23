@@ -1,0 +1,13 @@
+build/
+DerivedData/
+xcuserdata/
+*.xcuserstate
+*.xcodeproj
+*.xcworkspace
+.DS_Store
+fastlane/report.xml
+
+# 渲染器 Node 工程：依赖与构建产物都不入库，CI 里现构建
+web/node_modules/
+web/preview.png
+Sources/Resources/web/

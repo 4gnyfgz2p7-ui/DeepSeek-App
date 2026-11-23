@@ -1,0 +1,23 @@
+{
+  "name": "dsclient-renderer",
+  "private": true,
+  "type": "module",
+  "version": "0.1.0",
+  "description": "消息正文渲染器：Markdown + KaTeX + Prism + Mermaid，移植自 deepseek-ai/chat-demo（MIT）",
+  "scripts": {
+    "build": "node build.mjs"
+  },
+  "dependencies": {
+    "katex": "0.16.22",
+    "mdast-util-from-markdown": "2.0.3",
+    "mdast-util-gfm": "3.1.0",
+    "mdast-util-math": "3.0.0",
+    "mermaid": "11.10.1",
+    "micromark-extension-gfm": "3.0.0",
+    "micromark-extension-llm-math": "3.1.0",
+    "prismjs": "1.30.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0"
+  }
+}

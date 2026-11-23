@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <link rel="stylesheet" href="../Sources/Resources/web/katex.min.css" />
+    <link rel="stylesheet" href="../Sources/Resources/web/style.css" />
+    <title>渲染器样张</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script src="../Sources/Resources/web/renderer.js"></script>
+    <script>
+      // 样张：覆盖公式（含流式中未闭合）、代码高亮、表格、Mermaid、列表与思考框
+      const sample = `## 二次方程求根
+
+判别式为 $\\Delta = b^2 - 4ac$，当 $\\Delta \\geq 0$ 时：
+
+$$
+x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}
+$$
+
+| 情形 | 判别式 | 根 |
+| --- | --- | --- |
+| 两个实根 | $\\Delta > 0$ | 相异 |
+| 重根 | $\\Delta = 0$ | 相同 |
+| 复根 | $\\Delta < 0$ | 共轭 |
+
+代码验证：
+
+\`\`\`swift
+func roots(a: Double, b: Double, c: Double) -> (Double, Double)? {
+    let delta = b * b - 4 * a * c
+    guard delta >= 0 else { return nil }
+    let s = delta.squareRoot()
+    return ((-b + s) / (2 * a), (-b - s) / (2 * a))
+}
+\`\`\`
+
+流程：
+
+\`\`\`mermaid
+flowchart LR
+    A[输入 a,b,c] --> B{Delta >= 0?}
+    B -- 是 --> C[求根]
+    B -- 否 --> D[无实根]
+\`\`\`
+
+1. 先算判别式
+2. 再判断符号
+   - 注意 $a \\neq 0$
+
+行内公式与未闭合公式（模拟流式）：$\\Delta = b^2 - 4a`;
+
+      DS.reset([
+        { id: 'u1', role: 'user', text: '解一下这道题，用公式说明' },
+        {
+          id: 'a1',
+          role: 'assistant',
+          thinking:
+            '用户在问题目中二次方程的解法。先写出判别式，再分三种情况讨论，最后给一段可直接运行的代码验证。公式需要在流式过程中也能正确排版。',
+          seconds: 19,
+          text: sample,
+          streaming: false,
+        },
+      ]);
+    </script>
+  </body>
+</html>
