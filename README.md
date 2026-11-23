@@ -121,11 +121,15 @@ cd DSClient && xcodegen generate --spec project.yml && open DSClient.xcodeproj
 
 | 现象 | 处理 |
 |---|---|
+| **SideStore 自己点不开/闪退** | 它本身就是那个 7 天证书的 App，没有任何东西能替它续签。用 iLoader 覆盖重装一次（数据保留），再在 SideStore 里 `Refresh All` 复活其余 App |
+| iLoader 提示「已达证书数量上限，将撤销现有证书」 | 点继续。旧证书已废，撤销无额外损失；不撤销装不了新的 |
 | 登录报 `80045` | LocalDevVPN 必须连着；切 Anisette 服务器后杀后台重进 |
 | App 提示「不受信任的开发者」 | 设置 → VPN与设备管理 → 信任 Apple ID 证书 |
 | App 闪退/打不开 | 证书过期，回 SideStore 点 Refresh；或开发者模式没开 |
 | 续签静默失败 | 代理类 VPN 与 LocalDevVPN 互斥，续签时全部关掉 |
 | 安装报证书数量上限 | 免费 ID 最多 3 个 App，先在 SideStore 里删掉不用的 |
+
+修好 SideStore 后请确认 `Refresh All` 列表里**有没有 SideStore 自己**：有，说明它能自续，从此不用再插线；没有，说明它 7 天后仍会过期，需要定期用 iLoader 覆盖重装。
 
 若临时只想快速看一眼效果，也可以用 iLoader 直接 `导入 IPA` 签名安装，7 天后失效，重装即可——但这样拿不到自动续签。
 
