@@ -138,6 +138,12 @@ def download(asset: dict, target: Path) -> Path:
         print("  产物未变化，跳过下载")
         return target
 
+    # 先下到 .part 再整体替换：直接用 -C - 续传到旧文件上时，
+    # 若新旧包尺寸恰好相同，curl 会认为已下完、静默留下旧内容。
+    part = target.with_name(target.name + ".part")
+    if part.exists() and part.stat().st_size > asset["size"]:
+        part.unlink()
+
     api_url = f"https://api.github.com/repos/{OWNER}/{REPO}/releases/assets/{asset['id']}"
     direct = f"https://github.com/{OWNER}/{REPO}/releases/download/latest/{asset['name']}"
 
@@ -152,14 +158,16 @@ def download(asset: dict, target: Path) -> Path:
         except urllib.error.HTTPError as error:
             location = error.headers.get("Location", api_url)
         if location and location != api_url:
-            _curl(location, target, asset["size"])
+            _curl(location, part, asset["size"])
+            part.replace(target)
             MARKER.write_text(str(asset["id"]), encoding="ascii")
             return target
     except Exception as error:  # noqa: BLE001
         print(f"  API 通道失败：{error}")
 
     print("  改用 releases/download 直链")
-    _curl(direct, target, asset["size"])
+    _curl(direct, part, asset["size"])
+    part.replace(target)
     MARKER.write_text(str(asset["id"]), encoding="ascii")
     return target
 
@@ -177,6 +185,20 @@ def _curl(url: str, target: Path, size: int) -> None:
         print(f"  下载失败（第 {index + 1} 次）：{result.stderr.strip()[-120:]}")
         time.sleep(5 * (index + 1))
     raise SystemExit("下载重试 4 次仍失败")
+
+
+def describe(ipa: Path) -> str:
+    """读出包内的版本号，确认下载到的确实是这一次的产物"""
+    try:
+        import plistlib
+        import zipfile
+
+        with zipfile.ZipFile(ipa) as archive:
+            with archive.open("Payload/DSClient.app/Info.plist") as handle:
+                info = plistlib.load(handle)
+        return f"{info.get('CFBundleShortVersionString')} (build {info.get('CFBundleVersion')})"
+    except Exception:  # noqa: BLE001
+        return "版本未知"
 
 
 def main() -> None:
@@ -201,7 +223,16 @@ def main() -> None:
     asset = asset_of_latest_release()
     target = LOCAL / f"DSClient-{version()}.ipa"
     download(asset, target)
-    print(f"4) 就绪：{target}（{target.stat().st_size} 字节）")
+
+    info = describe(target)
+    expected = run.get("run_number")
+    if expected and f"build {expected}" not in info:
+        raise SystemExit(
+            f"产物版本异常：本地为 {info}，但本次运行是 #{expected}。"
+            f"删除 {target} 与 {MARKER} 后重试"
+        )
+
+    print(f"4) 就绪：{target}（{target.stat().st_size} 字节，{info}）")
 
 
 if __name__ == "__main__":
